@@ -16,7 +16,9 @@ func NewQueueRepository() *QueueRepository {
 
 func (r *QueueRepository) CountTodayQueues() (int, error) {
 	var count int64
-	result := config.DB.Model(&models.Queue{}).Where("DATE(created_at)=CURDATE()").Count(&count)
+	result := config.DB.Model(&models.Queue{}).
+		Where("queue_date = CURDATE()").
+		Count(&count)
 	if result.Error != nil {
 		return 0, fmt.Errorf("CountTodayQueues: %w", result.Error)
 	}

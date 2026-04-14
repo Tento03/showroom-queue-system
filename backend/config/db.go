@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"backend-queue/models"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -27,4 +29,13 @@ func InitDB() {
 
 	DB = db
 	log.Println("DB connected")
+
+	// AutoMigrate: buat/update tabel sesuai struct model
+	if err := DB.AutoMigrate(&models.Queue{}); err != nil {
+		log.Fatal("AutoMigrate failed:", err)
+	}
+	log.Println("AutoMigrate success")
+
+	// Composite unique index: queue_number + queue_date
+	DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_queue_number_date ON queues(queue_number, queue_date)")
 }

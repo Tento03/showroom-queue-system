@@ -1,6 +1,6 @@
 package dto
 
-type VCreateQueueRequest struct {
+type CreateQueueRequest struct {
 	VehiclePlate    string `json:"vehicle_plate" binding:"required"`
 	VehicleImageURL string `json:"vehicle_image_url" binding:"required"`
 	OwnerName       string `json:"owner_name"`

@@ -11,15 +11,17 @@ type QueueService struct {
 	repo *repositories.QueueRepository
 }
 
-func NewQueueService(repo *repositories.QueueRepository) *QueueService {
-	return &QueueService{repo: repo}
+func NewQueueService() *QueueService {
+	return &QueueService{
+		repo: repositories.NewQueueRepository(),
+	}
 }
 
 func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) {
 	// Step 1: Count how many queues were created today
 	count, err := s.repo.CountTodayQueues()
 	if err != nil {
-		return "", fmt.Errorf("failed to count today queues: %w", err)
+		return "", err
 	}
 
 	// Step 2: Generate queue number — resets every day, format A001..A999
@@ -36,7 +38,7 @@ func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) 
 
 	// Step 4: Persist to database
 	if err := s.repo.CreateQueue(queue); err != nil {
-		return "", fmt.Errorf("Failed to save queue: %w", err)
+		return "", err
 	}
 
 	// Step 5: Return queue number to controller

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"backend-queue/config"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -31,7 +32,9 @@ func (ctrl *UploadController) UploadImage(c *gin.Context) {
 		return
 	}
 
-	imageUrl := fmt.Sprintf("http://10.17.11.48/uploads/%s", filename)
+	host := config.GetEnv("APP_HOST")
+	port := config.GetEnv("APP_PORT")
+	imageUrl := fmt.Sprintf("http://%s:%s/uploads/%s", host, port, filename)
 
 	c.JSON(http.StatusOK, gin.H{"image_url": imageUrl})
 }

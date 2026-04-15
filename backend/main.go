@@ -12,6 +12,6 @@ func main() {
 	config.InitDB()
 
 	r := gin.Default()
-	routes.QueueRoute(r)
+	routes.Route(r)
 	r.Run(":8080")
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vehicle_queue_app/features/queue/pages/create_queue_page.dart';
+import 'package:vehicle_queue_app/features/queue/pages/main_navigation_page.dart';
 
 void main(List<String> args) {
   runApp(const MyApp());
@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: CreateQueuePage(),
+      home: const MainNavigationPage(),
     );
   }
 }

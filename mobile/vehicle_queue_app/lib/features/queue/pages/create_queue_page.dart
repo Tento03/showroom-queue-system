@@ -53,11 +53,14 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
   /// Scan button membuka kamera tapi tidak memproses OCR.
   /// User tetap harus mengetik plat secara manual setelah foto diambil.
   Future<void> scanPlate() async {
-    _showSnackBar(
-      'Fitur scan OCR belum tersedia. Silakan ketik plat secara manual.',
-      isError: true,
-      icon: Icons.document_scanner_outlined,
-    );
+    // Memberikan feedback visual bahwa tombol diklik dengan membuka picker (tanpa OCR)
+    await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 50);
+
+    // _showSnackBar(
+    //   'Fitur baca plat otomatis sedang dikembangkan. Silakan ketik nomor plat secara manual.',
+    //   isError: false,
+    //   icon: Icons.info_outline,
+    // );
   }
 
   Future<void> submit() async {
@@ -264,12 +267,10 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
                 keyboardType: TextInputType.phone,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
+                  if (v == null || v.trim().isEmpty)
                     return 'Telepon tidak boleh kosong.';
-                  }
-                  if (v.trim().length < 9) {
+                  if (v.trim().length < 9)
                     return 'Masukkan nomor telepon yang valid.';
-                  }
                   return null;
                 },
               ),
@@ -363,9 +364,8 @@ class _PlateInputRow extends StatelessWidget {
               ),
             ),
             validator: (v) {
-              if (v == null || v.trim().isEmpty) {
+              if (v == null || v.trim().isEmpty)
                 return 'Plat tidak boleh kosong.';
-              }
               if (v.trim().length < 3) return 'Masukkan nomor plat yang valid.';
               return null;
             },
@@ -380,8 +380,8 @@ class _PlateInputRow extends StatelessWidget {
             child: OutlinedButton(
               onPressed: onScanTap,
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.grey.shade400,
-                side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                foregroundColor: const Color(0xFF1A73E8),
+                side: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

@@ -15,6 +15,7 @@ func Route(r *gin.Engine) {
 	api := r.Group("/")
 	{
 		api.POST("/upload", uploadController.UploadImage)
+		api.GET("/queues", queueController.GetQueues)
 		api.POST("/queue", queueController.CreateQueue)
 	}
 }

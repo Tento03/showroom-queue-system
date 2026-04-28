@@ -4,6 +4,7 @@ import (
 	"backend-queue/dto"
 	"backend-queue/services"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,26 @@ func NewQueueController() *QueueController {
 	return &QueueController{
 		services: services.NewQueueService(),
 	}
+}
+
+func (ctrl *QueueController) GetQueues(c *gin.Context) {
+	date := c.Query("date")
+
+	queues, err := ctrl.services.GetQueues(date)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid date format") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get queues"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"date":   date,
+		"total":  len(queues),
+		"queues": queues,
+	})
 }
 
 func (ctrl *QueueController) CreateQueue(c *gin.Context) {

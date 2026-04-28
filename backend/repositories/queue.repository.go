@@ -25,6 +25,17 @@ func (r *QueueRepository) CountTodayQueues() (int, error) {
 	return int(count), nil
 }
 
+func (r *QueueRepository) GetQueuesByDate(date string) ([]models.Queue, error) {
+	var queues []models.Queue
+	result := config.DB.Where("queue_date = ?", date).
+		Order("created_at ASC").
+		Find(&queues)
+	if result.Error != nil {
+		return nil, fmt.Errorf("GetQueuesByDate: %w", result.Error)
+	}
+	return queues, nil
+}
+
 func (r *QueueRepository) CreateQueue(queue *models.Queue) error {
 	queue.ID = uuid.New().String()
 

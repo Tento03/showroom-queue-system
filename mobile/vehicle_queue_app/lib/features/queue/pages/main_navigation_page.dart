@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vehicle_queue_app/features/queue/pages/create_queue_page.dart';
 import 'package:vehicle_queue_app/features/queue/pages/queue_list_page.dart';
-import 'package:vehicle_queue_app/features/queue/pages/settings_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key});
@@ -14,11 +13,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
 
   // Gunakan IndexedStack agar state tiap halaman dipertahankan
-  final List<Widget> _pages = const [
-    CreateQueuePage(),
-    QueueListPage(),
-    SettingsPage(),
-  ];
+  final List<Widget> _pages = const [CreateQueuePage(), QueueListPage()];
 
   void _onItemTapped(int index) {
     setState(() => _currentIndex = index);
@@ -27,10 +22,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
         onTap: _onItemTapped,
@@ -56,11 +48,6 @@ class _BottomNav extends StatelessWidget {
       icon: Icons.format_list_bulleted_rounded,
       activeIcon: Icons.format_list_bulleted_rounded,
       label: 'Daftar Antrian',
-    ),
-    _NavItem(
-      icon: Icons.settings_outlined,
-      activeIcon: Icons.settings_rounded,
-      label: 'Pengaturan',
     ),
   ];
 
@@ -131,9 +118,7 @@ class _NavButton extends StatelessWidget {
         curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
-          color: isActive
-              ? _activeColor.withOpacity(0.08)
-              : Colors.transparent,
+          color: isActive ? _activeColor.withOpacity(0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -142,10 +127,8 @@ class _NavButton extends StatelessWidget {
             // ── Icon ──────────────────────────────────────────────────────────
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
-              transitionBuilder: (child, anim) => ScaleTransition(
-                scale: anim,
-                child: child,
-              ),
+              transitionBuilder: (child, anim) =>
+                  ScaleTransition(scale: anim, child: child),
               child: Icon(
                 isActive ? item.activeIcon : item.icon,
                 key: ValueKey(isActive),
@@ -159,8 +142,7 @@ class _NavButton extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 11,
-                fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive ? _activeColor : Colors.grey.shade400,
               ),
               child: Text(item.label, textAlign: TextAlign.center),

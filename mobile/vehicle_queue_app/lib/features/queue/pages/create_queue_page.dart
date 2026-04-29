@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../services/ocr_service.dart';
 import '../services/queue_service.dart';
 
-/// UI + QueueService — tombol Scan tetap ada di UI tapi tidak terhubung ke OCR.
-/// Submit sepenuhnya terhubung ke [QueueService].
 class CreateQueuePage extends StatefulWidget {
   const CreateQueuePage({super.key});
 
@@ -24,10 +23,13 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
 
   // ─── Services ─────────────────────────────────────────────────────────────
   final _queueService = QueueService();
+  final _ocrService = OcrService();
 
   // ─── State ────────────────────────────────────────────────────────────────
   File? _vehicleImage;
   bool _isLoading = false;
+  bool _isScanning = false;
+  bool _plateFromOcr = false;
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
   @override
@@ -35,6 +37,7 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
     _plateController.dispose();
     _ownerNameController.dispose();
     _ownerPhoneController.dispose();
+    _ocrService.dispose();
     super.dispose();
   }
 
@@ -50,17 +53,43 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
     }
   }
 
-  /// Scan button membuka kamera tapi tidak memproses OCR.
-  /// User tetap harus mengetik plat secara manual setelah foto diambil.
   Future<void> scanPlate() async {
-    // Memberikan feedback visual bahwa tombol diklik dengan membuka picker (tanpa OCR)
-    await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 50);
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 90,
+    );
+    if (picked == null) return;
 
-    // _showSnackBar(
-    //   'Fitur baca plat otomatis sedang dikembangkan. Silakan ketik nomor plat secara manual.',
-    //   isError: false,
-    //   icon: Icons.info_outline,
-    // );
+    setState(() => _isScanning = true);
+
+    try {
+      final result = await _ocrService.extractPlate(File(picked.path));
+
+      if (!mounted) return;
+
+      if (result != null && result.isNotEmpty) {
+        setState(() {
+          _plateController.text = result;
+          _plateFromOcr = true;
+        });
+        _plateController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _plateController.text.length),
+        );
+        _showSnackBar(
+          'Plate scanned: "$result". Verify and edit if needed.',
+          icon: Icons.check_circle_outline,
+        );
+      } else {
+        _showSnackBar(
+          'Could not read plate. Please type it manually.',
+          isError: true,
+        );
+      }
+    } catch (e) {
+      _showSnackBar('Scan failed: $e', isError: true);
+    } finally {
+      setState(() => _isScanning = false);
+    }
   }
 
   Future<void> submit() async {
@@ -68,7 +97,7 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
 
     if (_vehicleImage == null) {
       _showSnackBar(
-        'Harap ambil foto kendaraan terlebih dahulu.',
+        'Please take a photo of the vehicle.',
         isError: true,
         icon: Icons.camera_alt_outlined,
       );
@@ -89,7 +118,7 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
       _showQueueSuccessDialog(queueNumber);
       _resetForm();
     } catch (e) {
-      _showSnackBar('Gagal submit: $e', isError: true);
+      _showSnackBar('Failed to submit: $e', isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -99,9 +128,13 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
     _plateController.clear();
     _ownerNameController.clear();
     _ownerPhoneController.clear();
-    setState(() => _vehicleImage = null);
+    setState(() {
+      _vehicleImage = null;
+      _plateFromOcr = false;
+    });
   }
 
+  /// Shows a dialog with the assigned queue number after successful submission.
   void _showQueueSuccessDialog(String queueNumber) {
     showDialog(
       context: context,
@@ -126,12 +159,12 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Kendaraan Ditambahkan!',
+              'Vehicle Added!',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Nomor Antrian',
+              'Queue Number',
               style: TextStyle(fontSize: 13, color: Colors.grey),
             ),
             const SizedBox(height: 6),
@@ -163,7 +196,7 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text('Tambah Lagi'),
+                child: const Text('Add Another'),
               ),
             ),
           ],
@@ -206,7 +239,7 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
         elevation: 0,
         centerTitle: false,
         title: const Text(
-          'Tambah Kendaraan ke Antrian',
+          'Add Vehicle to Queue',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         bottom: PreferredSize(
@@ -222,55 +255,52 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Plate ──────────────────────────────────────────────────────
-              const _SectionLabel(label: 'Nomor Plat Kendaraan'),
+              _SectionLabel(
+                label: 'Vehicle Plate Number',
+                trailing: _plateFromOcr
+                    ? _OcrBadge(
+                        onClear: () => setState(() {
+                          _plateFromOcr = false;
+                          _plateController.clear();
+                        }),
+                      )
+                    : null,
+              ),
               const SizedBox(height: 8),
               _PlateInputRow(
                 controller: _plateController,
+                isScanning: _isScanning,
                 onScanTap: scanPlate,
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    Icons.document_scanner_outlined,
-                    size: 13,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Ketik nomor plat secara manual.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                  ),
-                ],
-              ),
+              _PlateHint(plateFromOcr: _plateFromOcr),
 
               const SizedBox(height: 24),
 
               // ── Owner Info ─────────────────────────────────────────────────
-              const _SectionLabel(label: 'Informasi Pemilik'),
+              const _SectionLabel(label: 'Owner Information'),
               const SizedBox(height: 8),
               _OutlinedField(
                 controller: _ownerNameController,
-                hint: 'cth. Budi Santoso',
-                label: 'Nama Lengkap',
+                hint: 'e.g. Budi Santoso',
+                label: 'Full Name',
                 prefixIcon: Icons.person_outline,
                 validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Nama tidak boleh kosong.'
+                    ? 'Name cannot be empty.'
                     : null,
               ),
               const SizedBox(height: 12),
               _OutlinedField(
                 controller: _ownerPhoneController,
-                hint: 'cth. 08123456789',
-                label: 'Nomor Telepon',
+                hint: 'e.g. 08123456789',
+                label: 'Phone Number',
                 prefixIcon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: (v) {
                   if (v == null || v.trim().isEmpty)
-                    return 'Telepon tidak boleh kosong.';
-                  if (v.trim().length < 9)
-                    return 'Masukkan nomor telepon yang valid.';
+                    return 'Phone cannot be empty.';
+                  if (v.trim().length < 9) return 'Enter a valid phone number.';
                   return null;
                 },
               ),
@@ -278,10 +308,10 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
               const SizedBox(height: 24),
 
               // ── Vehicle Photo ──────────────────────────────────────────────
-              const _SectionLabel(label: 'Foto Kendaraan'),
+              const _SectionLabel(label: 'Vehicle Photo'),
               const SizedBox(height: 4),
               Text(
-                'Ambil foto kendaraan secara keseluruhan untuk catatan.',
+                'Take a photo of the full vehicle for record.',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
               const SizedBox(height: 10),
@@ -292,6 +322,7 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
               // ── Submit ─────────────────────────────────────────────────────
               _SubmitButton(isLoading: _isLoading, onPressed: submit),
 
+              // Loading step indicator shown during submit
               if (_isLoading) ...[
                 const SizedBox(height: 12),
                 const _SubmitStepHint(),
@@ -329,11 +360,15 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// Plate input tanpa state [isScanning] karena OCR dihapus.
 class _PlateInputRow extends StatelessWidget {
-  const _PlateInputRow({required this.controller, required this.onScanTap});
+  const _PlateInputRow({
+    required this.controller,
+    required this.isScanning,
+    required this.onScanTap,
+  });
 
   final TextEditingController controller;
+  final bool isScanning;
   final VoidCallback onScanTap;
 
   @override
@@ -351,7 +386,7 @@ class _PlateInputRow extends StatelessWidget {
               letterSpacing: 2,
             ),
             decoration: InputDecoration(
-              hintText: 'cth. B 1234 XYZ',
+              hintText: 'e.g. B 1234 XYZ',
               filled: true,
               fillColor: Colors.white,
               prefixIcon: const Icon(Icons.directions_car_outlined),
@@ -365,39 +400,47 @@ class _PlateInputRow extends StatelessWidget {
             ),
             validator: (v) {
               if (v == null || v.trim().isEmpty)
-                return 'Plat tidak boleh kosong.';
-              if (v.trim().length < 3) return 'Masukkan nomor plat yang valid.';
+                return 'Plate cannot be empty.';
+              if (v.trim().length < 3) return 'Enter a valid plate number.';
               return null;
             },
           ),
         ),
         const SizedBox(width: 10),
-        // Tombol Scan tetap ditampilkan di UI namun memanggil stub
         SizedBox(
           height: 52,
-          child: Tooltip(
-            message: 'Fitur OCR belum tersedia',
-            child: OutlinedButton(
-              onPressed: onScanTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF1A73E8),
-                side: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: OutlinedButton(
+            onPressed: isScanning ? null : onScanTap,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF1A73E8),
+              side: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
-                children: [
-                  Icon(Icons.document_scanner_outlined, size: 18),
-                  SizedBox(width: 6),
-                  Text(
-                    'Scan',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                ],
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
             ),
+            child: isScanning
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF1A73E8),
+                    ),
+                  )
+                : const Row(
+                    children: [
+                      Icon(Icons.document_scanner_outlined, size: 18),
+                      SizedBox(width: 6),
+                      Text(
+                        'Scan',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ],
@@ -405,6 +448,79 @@ class _PlateInputRow extends StatelessWidget {
   }
 }
 
+class _PlateHint extends StatelessWidget {
+  const _PlateHint({required this.plateFromOcr});
+  final bool plateFromOcr;
+
+  @override
+  Widget build(BuildContext context) {
+    if (plateFromOcr) {
+      return Row(
+        children: [
+          Icon(Icons.edit_outlined, size: 13, color: Colors.orange.shade600),
+          const SizedBox(width: 4),
+          Text(
+            'OCR result — please verify before submitting.',
+            style: TextStyle(fontSize: 12, color: Colors.orange.shade700),
+          ),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Icon(
+          Icons.document_scanner_outlined,
+          size: 13,
+          color: Colors.grey.shade400,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          'Tap "Scan" to auto-fill from plate photo, or type manually.',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+        ),
+      ],
+    );
+  }
+}
+
+class _OcrBadge extends StatelessWidget {
+  const _OcrBadge({required this.onClear});
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F0FE),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF1A73E8).withOpacity(0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.auto_fix_high, size: 12, color: Color(0xFF1A73E8)),
+          const SizedBox(width: 4),
+          const Text(
+            'OCR',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A73E8),
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onClear,
+            child: const Icon(Icons.close, size: 12, color: Color(0xFF1A73E8)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Generic reusable outlined text field.
 class _OutlinedField extends StatelessWidget {
   const _OutlinedField({
     required this.controller,
@@ -506,7 +622,7 @@ class _ImagePickerCard extends StatelessWidget {
                 Icon(Icons.camera_alt, color: Colors.white, size: 16),
                 SizedBox(width: 6),
                 Text(
-                  'Tap untuk ulangi',
+                  'Tap to retake',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -539,7 +655,7 @@ class _ImagePickerCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const Text(
-          'Tap untuk ambil foto kendaraan',
+          'Tap to take vehicle photo',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
@@ -548,7 +664,7 @@ class _ImagePickerCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Ambil foto kendaraan secara keseluruhan',
+          'Take a clear photo of the full vehicle',
           style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
         ),
       ],
@@ -588,7 +704,7 @@ class _SubmitButton extends StatelessWidget {
                   Icon(Icons.add_circle_outline, size: 20),
                   SizedBox(width: 8),
                   Text(
-                    'Tambah ke Antrian',
+                    'Add to Queue',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -598,6 +714,8 @@ class _SubmitButton extends StatelessWidget {
   }
 }
 
+/// Small hint shown below the button while submitting,
+/// so user knows it's doing a 2-step process (upload → queue).
 class _SubmitStepHint extends StatelessWidget {
   const _SubmitStepHint();
 
@@ -613,7 +731,7 @@ class _SubmitStepHint extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(
-          'Mengunggah foto lalu membuat entri antrian...',
+          'Uploading photo then creating queue entry...',
           style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
         ),
       ],

@@ -7,6 +7,23 @@ class QueueService {
   final _dio = DioClient.instance;
   final _uploadService = UploadService();
 
+  Future<List<Map<String, dynamic>>> getQueues({String? date}) async {
+    final response = await _dio.get(
+      '/queues',
+      queryParameters: date != null ? {'date': date} : null,
+    );
+    final data = response.data;
+    List<dynamic> list = [];
+    if (data is List) {
+      list = data;
+    } else if (data is Map && data['queues'] is List) {
+      list = data['queues'] as List;
+    } else if (data is Map && data['data'] is List) {
+      list = data['data'] as List;
+    }
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
   Future<String> createQueue({
     required String plate,
     required File image,

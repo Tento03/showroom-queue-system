@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vehicle_queue_app/core/network/dio_client.dart';
+import 'package:vehicle_queue_app/features/queue/services/queue_service.dart';
 
 class QueueListPage extends StatefulWidget {
   const QueueListPage({super.key});
@@ -9,7 +9,7 @@ class QueueListPage extends StatefulWidget {
 }
 
 class _QueueListPageState extends State<QueueListPage> {
-  final _dio = DioClient.instance;
+  final _queueService = QueueService();
   List<Map<String, dynamic>> _queues = [];
   bool _isLoading = true;
   String? _error;
@@ -26,16 +26,9 @@ class _QueueListPageState extends State<QueueListPage> {
       _error = null;
     });
     try {
-      final response = await _dio.get('/queue');
-      final data = response.data;
-      List<dynamic> list = [];
-      if (data is List) {
-        list = data;
-      } else if (data is Map && data['data'] is List) {
-        list = data['data'] as List;
-      }
+      final queues = await _queueService.getQueues();
       setState(() {
-        _queues = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        _queues = queues;
         _isLoading = false;
       });
     } catch (e) {
@@ -199,7 +192,6 @@ class _QueueCard extends StatelessWidget {
     final plate = data['vehicle_plate']?.toString() ?? '-';
     final ownerName = data['owner_name']?.toString() ?? '-';
     final ownerPhone = data['owner_phone']?.toString() ?? '-';
-    final status = data['status']?.toString() ?? 'WAITING';
     final imageUrl = data['vehicle_image_url']?.toString();
 
     return Container(
@@ -261,19 +253,12 @@ class _QueueCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      _StatusBadge(status: status),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  _InfoRow(
-                    icon: Icons.person_outline,
-                    value: ownerName,
-                  ),
+                  _InfoRow(icon: Icons.person_outline, value: ownerName),
                   const SizedBox(height: 4),
-                  _InfoRow(
-                    icon: Icons.phone_outlined,
-                    value: ownerPhone,
-                  ),
+                  _InfoRow(icon: Icons.phone_outlined, value: ownerPhone),
                 ],
               ),
             ),
@@ -288,7 +273,7 @@ class _QueueCard extends StatelessWidget {
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
@@ -333,74 +318,4 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
-  final String status;
 
-  @override
-  Widget build(BuildContext context) {
-    final upper = status.toUpperCase();
-
-    Color bg;
-    Color fg;
-    IconData icon;
-    String label;
-
-    switch (upper) {
-      case 'WAITING':
-        bg = const Color(0xFFFFF8E1);
-        fg = const Color(0xFFF9A825);
-        icon = Icons.hourglass_top_rounded;
-        label = 'Menunggu';
-        break;
-      case 'IN_SERVICE':
-      case 'IN SERVICE':
-        bg = const Color(0xFFE3F2FD);
-        fg = const Color(0xFF1565C0);
-        icon = Icons.build_circle_outlined;
-        label = 'Servis';
-        break;
-      case 'DONE':
-      case 'COMPLETED':
-        bg = const Color(0xFFE6F4EA);
-        fg = const Color(0xFF2E7D32);
-        icon = Icons.check_circle_outline;
-        label = 'Selesai';
-        break;
-      case 'CANCELLED':
-        bg = const Color(0xFFFCE4EC);
-        fg = const Color(0xFFC62828);
-        icon = Icons.cancel_outlined;
-        label = 'Batal';
-        break;
-      default:
-        bg = Colors.grey.shade100;
-        fg = Colors.grey.shade600;
-        icon = Icons.info_outline;
-        label = status;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: fg),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: fg,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

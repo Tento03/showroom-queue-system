@@ -72,3 +72,81 @@ func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) 
 
 	return queueNumber, nil
 }
+
+func (s *QueueService) GetQueueByID(id string) (*models.Queue, error) {
+	queue, err := s.repo.GetQueueByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if queue == nil {
+		return nil, utils.ErrQueueNotFound
+	}
+	return queue, nil
+}
+
+func (s *QueueService) UpdateStatus(id string, status string) error {
+	queue, err := s.repo.GetQueueByID(id)
+	if err != nil {
+		return err
+	}
+	if queue == nil {
+		return utils.ErrQueueNotFound
+	}
+
+	if err := validateStatusTransition(queue.Status, models.QueueStatus(status)); err != nil {
+		return err
+	}
+
+	return s.repo.UpdateStatus(id, models.QueueStatus(status))
+}
+
+func (s *QueueService) DeleteQueue(id string) error {
+	queue, err := s.repo.GetQueueByID(id)
+	if err != nil {
+		return err
+	}
+	if queue == nil {
+		return utils.ErrQueueNotFound
+	}
+
+	if queue.Status != models.StatusWaiting && queue.Status != models.StatusCancelled {
+		return utils.ErrCannotDelete
+	}
+
+	return s.repo.DeleteQueue(id)
+}
+
+func (s *QueueService) GetDashboardStats(date string) (*dto.DashboardStats, error) {
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
+
+	stats, err := s.repo.GetStatsByDate(date)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.DashboardStats{
+		Total:     stats["total"],
+		Waiting:   stats["waiting"],
+		Processed: stats["processing"],
+		Done:      stats["done"],
+		Cancelled: stats["cancelled"],
+	}, nil
+}
+
+func validateStatusTransition(current, next models.QueueStatus) error {
+	allowed := map[models.QueueStatus][]models.QueueStatus{
+		models.StatusWaiting:    {models.StatusProcessing, models.StatusCancelled},
+		models.StatusProcessing: {models.StatusDone, models.StatusCancelled},
+		models.StatusDone:       {},
+		models.StatusCancelled:  {},
+	}
+
+	for _, s := range allowed[current] {
+		if s == next {
+			return nil
+		}
+	}
+	return utils.ErrInvalidStatusTransition
+}

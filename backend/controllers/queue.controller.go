@@ -25,7 +25,6 @@ func (ctrl *QueueController) GetQueues(c *gin.Context) {
 
 	queues, err := ctrl.services.GetQueues(date)
 	if err != nil {
-		// Fix #5 — pakai errors.Is, bukan strings.Contains
 		if errors.Is(err, utils.ErrInvalidDateFormat) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -56,4 +55,82 @@ func (ctrl *QueueController) CreateQueue(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"queue_number": queueNumber})
+}
+
+// 🆕
+func (ctrl *QueueController) GetQueueByID(c *gin.Context) {
+	id := c.Param("id")
+
+	queue, err := ctrl.services.GetQueueByID(id)
+	if err != nil {
+		if errors.Is(err, utils.ErrQueueNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get queue"})
+		return
+	}
+
+	c.JSON(http.StatusOK, queue)
+}
+
+// 🆕
+func (ctrl *QueueController) UpdateStatus(c *gin.Context) {
+	id := c.Param("id")
+	var req dto.UpdateStatusRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := ctrl.services.UpdateStatus(id, req.Status)
+	if err != nil {
+		if errors.Is(err, utils.ErrQueueNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, utils.ErrInvalidStatusTransition) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "status updated"})
+}
+
+// 🆕
+func (ctrl *QueueController) DeleteQueue(c *gin.Context) {
+	id := c.Param("id")
+
+	err := ctrl.services.DeleteQueue(id)
+	if err != nil {
+		if errors.Is(err, utils.ErrQueueNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, utils.ErrCannotDelete) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete queue"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "queue deleted"})
+}
+
+// 🆕
+func (ctrl *QueueController) GetDashboardStats(c *gin.Context) {
+	date := c.Query("date")
+
+	stats, err := ctrl.services.GetDashboardStats(date)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get stats"})
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
 }

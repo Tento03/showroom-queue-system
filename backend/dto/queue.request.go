@@ -6,3 +6,15 @@ type CreateQueueRequest struct {
 	OwnerName       string `json:"owner_name"`
 	OwnerPhone      string `json:"owner_phone"`
 }
+
+type UpdateStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=waiting processing done cancelled"`
+}
+
+type DashboardStats struct {
+	Total     int `json:"total"`
+	Waiting   int `json:"waiting"`
+	Processed int `json:"processed"`
+	Done      int `json:"done"`
+	Cancelled int `json:"cancelled"`
+}

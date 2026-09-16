@@ -47,3 +47,57 @@ func (r *QueueRepository) CreateQueueTx(tx *gorm.DB, queue *models.Queue) error 
 	}
 	return nil
 }
+
+func (r *QueueRepository) GetQueueByID(id string) (*models.Queue, error) {
+	var queue models.Queue
+	result := config.DB.Where("id = ?", id).First(&queue)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("GetQueueByID: %w", result.Error)
+	}
+	return &queue, nil
+}
+
+func (r *QueueRepository) UpdateStatus(id string, status models.QueueStatus) error {
+	result := config.DB.Model(&models.Queue{}).Where("id = ?", id).Update("status", status)
+	return result.Error
+}
+
+func (r *QueueRepository) DeleteQueue(id string) error {
+	result := config.DB.Where("id = ?", id).Delete(&models.Queue{})
+	return result.Error
+}
+
+func (r *QueueRepository) GetStatsByDate(date string) (map[string]int, error) {
+	var results []struct {
+		Status string
+		Count  int
+	}
+
+	err := config.DB.Model(&models.Queue{}).
+		Select("status, count(*) as count").
+		Where("queue_date = ?", date).
+		Group("status").
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	stats := map[string]int{
+		"total":      0,
+		"waiting":    0,
+		"processing": 0,
+		"done":       0,
+		"cancelled":  0,
+	}
+
+	for _, r := range results {
+		stats[r.Status] = r.Count
+		stats["total"] += r.Count
+	}
+
+	return stats, nil
+}

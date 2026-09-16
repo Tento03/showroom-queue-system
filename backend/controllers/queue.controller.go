@@ -3,8 +3,9 @@ package controllers
 import (
 	"backend-queue/dto"
 	"backend-queue/services"
+	"backend-queue/utils"
+	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,7 +25,8 @@ func (ctrl *QueueController) GetQueues(c *gin.Context) {
 
 	queues, err := ctrl.services.GetQueues(date)
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid date format") {
+		// Fix #5 — pakai errors.Is, bukan strings.Contains
+		if errors.Is(err, utils.ErrInvalidDateFormat) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}

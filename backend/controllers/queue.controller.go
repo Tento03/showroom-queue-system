@@ -5,7 +5,9 @@ import (
 	"backend-queue/services"
 	"backend-queue/utils"
 	"errors"
+	"math"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,10 +22,26 @@ func NewQueueController() *QueueController {
 	}
 }
 
+// Ganti method ini
 func (ctrl *QueueController) GetQueues(c *gin.Context) {
 	date := c.Query("date")
 
-	queues, err := ctrl.services.GetQueues(date)
+	// Parse pagination params
+	page := 1
+	limit := 10
+
+	if p := c.Query("page"); p != "" {
+		if val, err := strconv.Atoi(p); err == nil {
+			page = val
+		}
+	}
+	if l := c.Query("limit"); l != "" {
+		if val, err := strconv.Atoi(l); err == nil {
+			limit = val
+		}
+	}
+
+	queues, total, err := ctrl.services.GetQueues(date, page, limit)
 	if err != nil {
 		if errors.Is(err, utils.ErrInvalidDateFormat) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -33,10 +51,15 @@ func (ctrl *QueueController) GetQueues(c *gin.Context) {
 		return
 	}
 
+	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+
 	c.JSON(http.StatusOK, gin.H{
-		"date":   date,
-		"total":  len(queues),
-		"queues": queues,
+		"date":        date,
+		"total":       total,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+		"queues":      queues,
 	})
 }
 

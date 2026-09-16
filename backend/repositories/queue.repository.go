@@ -28,15 +28,30 @@ func (r *QueueRepository) CountTodayQueues(tx *gorm.DB) (int, error) {
 	return int(count), nil
 }
 
-func (r *QueueRepository) GetQueuesByDate(date string) ([]models.Queue, error) {
+// Ganti method ini
+func (r *QueueRepository) GetQueuesByDate(date string, page, limit int) ([]models.Queue, int64, error) {
 	var queues []models.Queue
+	var total int64
+
+	offset := (page - 1) * limit
+
+	// Hitung total dulu
+	config.DB.Model(&models.Queue{}).
+		Where("queue_date = ?", date).
+		Count(&total)
+
+	// Ambil data dengan pagination
 	result := config.DB.Where("queue_date = ?", date).
 		Order("created_at ASC").
+		Limit(limit).
+		Offset(offset).
 		Find(&queues)
+
 	if result.Error != nil {
-		return nil, fmt.Errorf("GetQueuesByDate: %w", result.Error)
+		return nil, 0, fmt.Errorf("GetQueuesByDate: %w", result.Error)
 	}
-	return queues, nil
+
+	return queues, total, nil
 }
 
 func (r *QueueRepository) CreateQueueTx(tx *gorm.DB, queue *models.Queue) error {

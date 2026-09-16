@@ -18,3 +18,17 @@ type DashboardStats struct {
 	Done      int `json:"done"`
 	Cancelled int `json:"cancelled"`
 }
+
+type PaginationQuery struct {
+	Page  int `form:"page"`
+	Limit int `form:"limit"`
+}
+
+type PaginatedQueues struct {
+	Date       string        `json:"date"`
+	Total      int64         `json:"total"`
+	Page       int           `json:"page"`
+	Limit      int           `json:"limit"`
+	TotalPages int           `json:"total_pages"`
+	Queues     []interface{} `json:"queues"`
+}

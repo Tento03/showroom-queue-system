@@ -22,17 +22,25 @@ func NewQueueService() *QueueService {
 	}
 }
 
-func (s *QueueService) GetQueues(date string) ([]models.Queue, error) {
+func (s *QueueService) GetQueues(date string, page, limit int) ([]models.Queue, int64, error) {
 	if date == "" {
 		date = time.Now().Format("2006-01-02")
 	} else {
 		_, err := time.Parse("2006-01-02", date)
 		if err != nil {
-			// Fix #5 — return typed error, bukan string
-			return nil, utils.ErrInvalidDateFormat
+			return nil, 0, utils.ErrInvalidDateFormat
 		}
 	}
-	return s.repo.GetQueuesByDate(date)
+
+	// Default values
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+
+	return s.repo.GetQueuesByDate(date, page, limit)
 }
 
 func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) {

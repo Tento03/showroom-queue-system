@@ -10,6 +10,7 @@ import (
 func main() {
 	config.LoadEnv()
 	config.InitDB()
+	config.InitRedis()
 
 	r := gin.Default()
 	routes.Route(r)

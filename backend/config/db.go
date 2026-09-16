@@ -36,6 +36,9 @@ func InitDB() {
 	}
 	log.Println("AutoMigrate success")
 
-	// Composite unique index: queue_number + queue_date
-	DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_queue_number_date ON queues(queue_number, queue_date)")
+	var count int64
+	DB.Raw("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'queues' AND index_name = 'idx_queue_number_date'").Scan(&count)
+	if count == 0 {
+		DB.Exec("CREATE UNIQUE INDEX idx_queue_number_date ON queues(queue_number, queue_date)")
+	}
 }

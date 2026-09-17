@@ -46,9 +46,7 @@ func (s *QueueService) GetQueues(date string, page, limit int) ([]models.Queue, 
 func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) {
 	var queueNumber string
 
-	// Fix #1 — wrap dalam DB transaction + lock
 	err := config.DB.Transaction(func(tx *gorm.DB) error {
-		// Lock row agar request paralel antri di sini
 		var dummy models.Queue
 		tx.Raw("SELECT id FROM queues WHERE queue_date = ? LIMIT 1 FOR UPDATE",
 			time.Now().Format("2006-01-02")).
@@ -78,6 +76,9 @@ func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) 
 		return "", err
 	}
 
+	// 🆕 Invalidate cache setelah queue baru dibuat
+	InvalidateDashboardCache(time.Now().Format("2006-01-02"))
+
 	return queueNumber, nil
 }
 
@@ -105,7 +106,14 @@ func (s *QueueService) UpdateStatus(id string, status string) error {
 		return err
 	}
 
-	return s.repo.UpdateStatus(id, models.QueueStatus(status))
+	if err := s.repo.UpdateStatus(id, models.QueueStatus(status)); err != nil {
+		return err
+	}
+
+	// 🆕 Invalidate cache setelah status berubah
+	InvalidateDashboardCache(queue.QueueDate)
+
+	return nil
 }
 
 func (s *QueueService) DeleteQueue(id string) error {

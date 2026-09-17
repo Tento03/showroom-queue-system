@@ -145,11 +145,12 @@ func (ctrl *QueueController) DeleteQueue(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "queue deleted"})
 }
 
-// 🆕
+// Ganti GetDashboardStats di controller
 func (ctrl *QueueController) GetDashboardStats(c *gin.Context) {
 	date := c.Query("date")
 
-	stats, err := ctrl.services.GetDashboardStats(date)
+	svc := services.NewDashboardService()
+	stats, err := svc.GetDashboardStats(date)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get stats"})
 		return

@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend-queue/config"
+	"backend-queue/middleware"
 	"backend-queue/routes"
 	"backend-queue/services"
 
@@ -16,6 +17,7 @@ func main() {
 	go services.Hub.Run()
 
 	r := gin.Default()
+	r.Use(middleware.CORS())
 	routes.Route(r)
 	r.Run(":8080")
 }

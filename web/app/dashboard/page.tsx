@@ -111,7 +111,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <StatsCard label="Total"     value={stats.total}      color="bg-gray-700" />
             <StatsCard label="Menunggu"  value={stats.waiting}    color="bg-yellow-500" />
-            <StatsCard label="Diproses" value={stats.processing} color="bg-blue-500" />
+            <StatsCard label="Diproses" value={stats.processed} color="bg-blue-500" />
             <StatsCard label="Selesai"   value={stats.done}       color="bg-green-500" />
             <StatsCard label="Batal"     value={stats.cancelled}  color="bg-red-500" />
           </div>
@@ -153,7 +153,7 @@ export default function DashboardPage() {
                   </td>
                 </tr>
               ) : filteredQueues.map(q => (
-                <tr key={q.id} className="hover:bg-gray-50">
+                <tr key={q.id} className="hover:bg-gray-50 transition-colors duration-200">
                   <td className="px-4 py-3 font-bold">{q.queue_number}</td>
                   <td className="px-4 py-3">{q.vehicle_plate}</td>
                   <td className="px-4 py-3">{q.owner_name || '-'}</td>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                       {q.status === 'waiting' && (
                         <button
                           onClick={() => handleStatusUpdate(q.id, 'processing')}
-                          className="text-xs bg-blue-500 text-white px-2 py-1 rounded"
+                          className="text-xs bg-blue-500 hover:bg-blue-600 active:scale-95 transition-all duration-200 text-white px-2 py-1 rounded shadow hover:shadow-md"
                         >
                           Proses
                         </button>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
                       {q.status === 'processing' && (
                         <button
                           onClick={() => handleStatusUpdate(q.id, 'done')}
-                          className="text-xs bg-green-500 text-white px-2 py-1 rounded"
+                          className="text-xs bg-green-500 hover:bg-green-600 active:scale-95 transition-all duration-200 text-white px-2 py-1 rounded shadow hover:shadow-md"
                         >
                           Selesai
                         </button>
@@ -184,7 +184,7 @@ export default function DashboardPage() {
                       {(q.status === 'waiting' || q.status === 'processing') && (
                         <button
                           onClick={() => handleStatusUpdate(q.id, 'cancelled')}
-                          className="text-xs bg-gray-400 text-white px-2 py-1 rounded"
+                          className="text-xs bg-gray-400 hover:bg-gray-500 active:scale-95 transition-all duration-200 text-white px-2 py-1 rounded shadow hover:shadow-md"
                         >
                           Batal
                         </button>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
                       {(q.status === 'waiting' || q.status === 'cancelled') && (
                         <button
                           onClick={() => handleDelete(q.id)}
-                          className="text-xs bg-red-500 text-white px-2 py-1 rounded"
+                          className="text-xs bg-red-500 hover:bg-red-600 active:scale-95 transition-all duration-200 text-white px-2 py-1 rounded shadow hover:shadow-md"
                         >
                           Hapus
                         </button>

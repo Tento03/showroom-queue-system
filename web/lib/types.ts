@@ -15,7 +15,7 @@ export interface Queue {
 export interface DashboardStats {
   total: number
   waiting: number
-  processing: number
+  processed: number
   done: number
   cancelled: number
 }

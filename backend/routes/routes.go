@@ -2,6 +2,7 @@ package routes
 
 import (
 	"backend-queue/controllers"
+	"backend-queue/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +15,9 @@ func Route(r *gin.Engine) {
 
 	api := r.Group("/")
 	{
-		api.POST("/upload", uploadController.UploadImage)
+		api.POST("/upload", middleware.RateLimitUpload(), uploadController.UploadImage)
+
+		// Queue
 		api.GET("/queues", queueController.GetQueues)
 		api.POST("/queue", queueController.CreateQueue)
 		api.GET("/queue/:id", queueController.GetQueueByID)

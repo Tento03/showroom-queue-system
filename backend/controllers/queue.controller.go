@@ -80,7 +80,6 @@ func (ctrl *QueueController) CreateQueue(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"queue_number": queueNumber})
 }
 
-// 🆕
 func (ctrl *QueueController) GetQueueByID(c *gin.Context) {
 	id := c.Param("id")
 
@@ -97,7 +96,6 @@ func (ctrl *QueueController) GetQueueByID(c *gin.Context) {
 	c.JSON(http.StatusOK, queue)
 }
 
-// 🆕
 func (ctrl *QueueController) UpdateStatus(c *gin.Context) {
 	id := c.Param("id")
 	var req dto.UpdateStatusRequest
@@ -124,7 +122,6 @@ func (ctrl *QueueController) UpdateStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "status updated"})
 }
 
-// 🆕
 func (ctrl *QueueController) DeleteQueue(c *gin.Context) {
 	id := c.Param("id")
 

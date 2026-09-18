@@ -6,6 +6,7 @@ import (
 	"backend-queue/models"
 	"backend-queue/repositories"
 	"backend-queue/utils"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -79,6 +80,13 @@ func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) 
 	// 🆕 Invalidate cache setelah queue baru dibuat
 	InvalidateDashboardCache(time.Now().Format("2006-01-02"))
 
+	msg, _ := json.Marshal(map[string]string{
+		"event":        "queue_created",
+		"queue_number": queueNumber,
+		"date":         time.Now().Format("2006-01-02"),
+	})
+	Hub.Broadcast(msg)
+
 	return queueNumber, nil
 }
 
@@ -112,6 +120,13 @@ func (s *QueueService) UpdateStatus(id string, status string) error {
 
 	// 🆕 Invalidate cache setelah status berubah
 	InvalidateDashboardCache(queue.QueueDate)
+
+	msg, _ := json.Marshal(map[string]string{
+		"event":  "status_updated",
+		"id":     id,
+		"status": status,
+	})
+	Hub.Broadcast(msg)
 
 	return nil
 }

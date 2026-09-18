@@ -10,6 +10,7 @@ import (
 func Route(r *gin.Engine) {
 	queueController := controllers.NewQueueController()
 	uploadController := controllers.NewUploadController()
+	wsController := controllers.NewWebSocketController()
 
 	r.Static("/uploads", "./uploads")
 
@@ -26,5 +27,7 @@ func Route(r *gin.Engine) {
 
 		// Dashboard
 		api.GET("/dashboard/stats", queueController.GetDashboardStats)
+
+		api.GET("/ws", wsController.Handle)
 	}
 }

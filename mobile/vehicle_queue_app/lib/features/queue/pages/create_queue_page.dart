@@ -181,7 +181,7 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 4,
-                  color: Color(0xFF1A73E8),
+                  color: Color(0xFF4F46E5),
                 ),
               ),
             ),
@@ -191,7 +191,7 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
               child: FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A73E8),
+                  backgroundColor: const Color(0xFF4F46E5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -412,8 +412,8 @@ class _PlateInputRow extends StatelessWidget {
           child: OutlinedButton(
             onPressed: isScanning ? null : onScanTap,
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1A73E8),
-              side: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
+              foregroundColor: const Color(0xFF4F46E5),
+              side: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -425,7 +425,7 @@ class _PlateInputRow extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Color(0xFF1A73E8),
+                      color: Color(0xFF4F46E5),
                     ),
                   )
                 : const Row(
@@ -494,25 +494,25 @@ class _OcrBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFE8F0FE),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF1A73E8).withOpacity(0.4)),
+        border: Border.all(color: const Color(0xFF4F46E5).withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.auto_fix_high, size: 12, color: Color(0xFF1A73E8)),
+          const Icon(Icons.auto_fix_high, size: 12, color: Color(0xFF4F46E5)),
           const SizedBox(width: 4),
           const Text(
             'OCR',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1A73E8),
+              color: Color(0xFF4F46E5),
             ),
           ),
           const SizedBox(width: 4),
           GestureDetector(
             onTap: onClear,
-            child: const Icon(Icons.close, size: 12, color: Color(0xFF1A73E8)),
+            child: const Icon(Icons.close, size: 12, color: Color(0xFF4F46E5)),
           ),
         ],
       ),
@@ -580,7 +580,7 @@ class _ImagePickerCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: image != null
-                ? const Color(0xFF1A73E8)
+                ? const Color(0xFF4F46E5)
                 : Colors.grey.shade300,
             width: image != null ? 2 : 1.5,
           ),
@@ -650,7 +650,7 @@ class _ImagePickerCard extends StatelessWidget {
           child: const Icon(
             Icons.camera_alt_outlined,
             size: 32,
-            color: Color(0xFF1A73E8),
+            color: Color(0xFF4F46E5),
           ),
         ),
         const SizedBox(height: 12),
@@ -684,7 +684,7 @@ class _SubmitButton extends StatelessWidget {
       child: FilledButton(
         onPressed: isLoading ? null : onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF1A73E8),
+          backgroundColor: const Color(0xFF4F46E5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

@@ -59,8 +59,8 @@ class _BottomNav extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+            blurRadius: 16,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
@@ -106,7 +106,7 @@ class _NavButton extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
 
-  static const _activeColor = Color(0xFF1A73E8);
+  static const _activeColor = Color(0xFF4F46E5);
 
   @override
   Widget build(BuildContext context) {
@@ -114,19 +114,19 @@ class _NavButton extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         decoration: BoxDecoration(
           color: isActive ? _activeColor.withOpacity(0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // ── Icon ──────────────────────────────────────────────────────────
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
+              duration: const Duration(milliseconds: 200),
               transitionBuilder: (child, anim) =>
                   ScaleTransition(scale: anim, child: child),
               child: Icon(
@@ -141,23 +141,11 @@ class _NavButton extends StatelessWidget {
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive ? _activeColor : Colors.grey.shade400,
               ),
               child: Text(item.label, textAlign: TextAlign.center),
-            ),
-
-            // ── Active Dot Indicator ──────────────────────────────────────────
-            const SizedBox(height: 4),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: isActive ? 6 : 0,
-              height: isActive ? 6 : 0,
-              decoration: const BoxDecoration(
-                color: _activeColor,
-                shape: BoxShape.circle,
-              ),
             ),
           ],
         ),

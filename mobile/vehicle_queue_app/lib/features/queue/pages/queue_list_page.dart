@@ -73,7 +73,7 @@ class _QueueListPageState extends State<QueueListPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Color(0xFF1A73E8)),
+            CircularProgressIndicator(color: Color(0xFF4F46E5)),
             SizedBox(height: 16),
             Text(
               'Memuat daftar antrian...',
@@ -120,7 +120,7 @@ class _QueueListPageState extends State<QueueListPage> {
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Coba Lagi'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A73E8),
+                  backgroundColor: const Color(0xFF4F46E5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -146,7 +146,7 @@ class _QueueListPageState extends State<QueueListPage> {
               child: const Icon(
                 Icons.format_list_bulleted_rounded,
                 size: 40,
-                color: Color(0xFF1A73E8),
+                color: Color(0xFF4F46E5),
               ),
             ),
             const SizedBox(height: 16),
@@ -166,7 +166,7 @@ class _QueueListPageState extends State<QueueListPage> {
 
     return RefreshIndicator(
       onRefresh: _fetchQueues,
-      color: const Color(0xFF1A73E8),
+      color: const Color(0xFF4F46E5),
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _queues.length,
@@ -217,7 +217,7 @@ class _QueueCard extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+                  colors: [Color(0xFF4F46E5), Color(0xFF3730A3)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),

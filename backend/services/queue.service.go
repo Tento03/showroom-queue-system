@@ -166,6 +166,49 @@ func (s *QueueService) GetDashboardStats(date string) (*dto.DashboardStats, erro
 	}, nil
 }
 
+func (s *QueueService) GetEstimates(date string) (*dto.ETAResponse, error) {
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
+
+	avgMinutes, err := s.repo.GetAvgServiceMinutes(date)
+	if err != nil || avgMinutes <= 0 {
+		avgMinutes = 30.0 // Default baseline Service ETA = 30 mins
+	}
+
+	avgInt := int(avgMinutes)
+
+	activeQueues, err := s.repo.GetActiveQueuesByDate(date)
+	if err != nil {
+		return nil, err
+	}
+
+	var estimates []dto.QueueETA
+	now := time.Now()
+
+	for i, q := range activeQueues {
+		queuesAhead := i
+		estWait := queuesAhead * avgInt
+		estDoneAt := now.Add(time.Duration(estWait) * time.Minute)
+
+		estimates = append(estimates, dto.QueueETA{
+			ID:                   q.ID,
+			QueueNumber:          q.QueueNumber,
+			VehiclePlate:         q.VehiclePlate,
+			Status:               string(q.Status),
+			EstimatedWaitMinutes: estWait,
+			EstimatedDoneAt:      estDoneAt.Format(time.RFC3339),
+			QueuesAhead:          queuesAhead,
+		})
+	}
+
+	return &dto.ETAResponse{
+		Date:              date,
+		AvgServiceMinutes: avgInt,
+		Estimates:         estimates,
+	}, nil
+}
+
 func validateStatusTransition(current, next models.QueueStatus) error {
 	allowed := map[models.QueueStatus][]models.QueueStatus{
 		models.StatusWaiting:    {models.StatusProcessing, models.StatusCancelled},

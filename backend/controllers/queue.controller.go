@@ -155,3 +155,16 @@ func (ctrl *QueueController) GetDashboardStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, stats)
 }
+
+func (ctrl *QueueController) GetEstimates(c *gin.Context) {
+	date := c.Query("date")
+
+	res, err := ctrl.services.GetEstimates(date)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get estimates"})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+

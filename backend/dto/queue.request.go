@@ -32,3 +32,20 @@ type PaginatedQueues struct {
 	TotalPages int           `json:"total_pages"`
 	Queues     []interface{} `json:"queues"`
 }
+
+type QueueETA struct {
+	ID                   string `json:"id"`
+	QueueNumber          string `json:"queue_number"`
+	VehiclePlate         string `json:"vehicle_plate"`
+	Status               string `json:"status"`
+	EstimatedWaitMinutes int    `json:"estimated_wait_minutes"`
+	EstimatedDoneAt      string `json:"estimated_done_at"` // RFC3339 string
+	QueuesAhead          int    `json:"queues_ahead"`
+}
+
+type ETAResponse struct {
+	Date              string     `json:"date"`
+	AvgServiceMinutes int        `json:"avg_service_minutes"`
+	Estimates         []QueueETA `json:"estimates"`
+}
+

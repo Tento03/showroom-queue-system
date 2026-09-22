@@ -76,8 +76,38 @@ func (r *QueueRepository) GetQueueByID(id string) (*models.Queue, error) {
 }
 
 func (r *QueueRepository) UpdateStatus(id string, status models.QueueStatus) error {
-	result := config.DB.Model(&models.Queue{}).Where("id = ?", id).Update("status", status)
+	updates := map[string]interface{}{
+		"status": status,
+	}
+	if status == models.StatusDone {
+		now := time.Now()
+		updates["done_at"] = &now
+	}
+	result := config.DB.Model(&models.Queue{}).Where("id = ?", id).Updates(updates)
 	return result.Error
+}
+
+func (r *QueueRepository) GetActiveQueuesByDate(date string) ([]models.Queue, error) {
+	var queues []models.Queue
+	err := config.DB.Where("queue_date = ? AND status IN ?", date, []models.QueueStatus{models.StatusWaiting, models.StatusProcessing}).
+		Order("created_at ASC").
+		Find(&queues).Error
+	return queues, err
+}
+
+func (r *QueueRepository) GetAvgServiceMinutes(date string) (float64, error) {
+	var avgMinutes *float64
+	// Works for both MySQL (TIMESTAMPDIFF) and SQLite/Postgres or generic SQL via TIMESTAMPDIFF / strftime
+	// In GORM raw query or driver specific:
+	err := config.DB.Model(&models.Queue{}).
+		Select("AVG(TIMESTAMPDIFF(MINUTE, created_at, done_at))").
+		Where("queue_date = ? AND status = ? AND done_at IS NOT NULL", date, models.StatusDone).
+		Scan(&avgMinutes).Error
+
+	if err != nil || avgMinutes == nil {
+		return 0, err
+	}
+	return *avgMinutes, nil
 }
 
 func (r *QueueRepository) DeleteQueue(id string) error {

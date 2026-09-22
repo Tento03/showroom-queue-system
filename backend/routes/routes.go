@@ -27,6 +27,7 @@ func Route(r *gin.Engine) {
 
 		// Dashboard
 		api.GET("/dashboard/stats", queueController.GetDashboardStats)
+		api.GET("/dashboard/estimates", queueController.GetEstimates)
 
 		api.GET("/ws", wsController.Handle)
 	}

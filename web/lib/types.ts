@@ -28,3 +28,19 @@ export interface PaginatedQueues {
   total_pages: number
   queues: Queue[]
 }
+
+export interface QueueETA {
+  id: string
+  queue_number: string
+  vehicle_plate: string
+  status: QueueStatus
+  estimated_wait_minutes: number
+  estimated_done_at: string
+  queues_ahead: number
+}
+
+export interface ETAResponse {
+  date: string
+  avg_service_minutes: number
+  estimates: QueueETA[]
+}

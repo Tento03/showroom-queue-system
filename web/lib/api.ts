@@ -29,3 +29,9 @@ export const deleteQueue = async (id: string) => {
   const res = await api.delete(`/queue/${id}`)
   return res.data
 }
+
+export const getEstimates = async (date?: string) => {
+  const params = date ? `?date=${date}` : ''
+  const res = await api.get(`/dashboard/estimates${params}`)
+  return res.data
+}

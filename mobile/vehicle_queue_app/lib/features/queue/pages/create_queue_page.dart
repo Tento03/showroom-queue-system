@@ -114,8 +114,14 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
         ownerPhone: _ownerPhoneController.text.trim(),
       );
 
+      // Fetch Smart Queue ETA right after queue creation
+      Map<String, dynamic>? etaData;
+      try {
+        etaData = await _queueService.getEstimates();
+      } catch (_) {}
+
       if (!mounted) return;
-      _showQueueSuccessDialog(queueNumber);
+      _showQueueSuccessDialog(queueNumber, etaData: etaData);
       _resetForm();
     } catch (e) {
       _showSnackBar('Failed to submit: $e', isError: true);
@@ -134,8 +140,30 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
     });
   }
 
-  /// Shows a dialog with the assigned queue number after successful submission.
-  void _showQueueSuccessDialog(String queueNumber) {
+  /// Shows a dialog with the assigned queue number & Smart ETA after successful submission.
+  void _showQueueSuccessDialog(String queueNumber, {Map<String, dynamic>? etaData}) {
+    String? estimatedDoneStr;
+    int? queuesAhead;
+
+    if (etaData != null && etaData['estimates'] is List) {
+      final estimates = etaData['estimates'] as List;
+      final myEst = estimates.firstWhere(
+        (e) => e['queue_number'] == queueNumber,
+        orElse: () => null,
+      );
+      if (myEst != null) {
+        if (myEst['estimated_done_at'] != null) {
+          try {
+            final dt = DateTime.parse(myEst['estimated_done_at']).toLocal();
+            final hour = dt.hour.toString().padLeft(2, '0');
+            final minute = dt.minute.toString().padLeft(2, '0');
+            estimatedDoneStr = '± $hour:$minute WIB';
+          } catch (_) {}
+        }
+        queuesAhead = myEst['queues_ahead'] as int?;
+      }
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -185,6 +213,45 @@ class _CreateQueuePageState extends State<CreateQueuePage> {
                 ),
               ),
             ),
+            if (estimatedDoneStr != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFC7D2FE)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF4F46E5)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Estimasi Selesai: $estimatedDoneStr',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF3730A3),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (queuesAhead != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        queuesAhead == 0
+                            ? 'Antrian Anda diproses berikutnya!'
+                            : '$queuesAhead antrian di depan Anda',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF4338CA)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,

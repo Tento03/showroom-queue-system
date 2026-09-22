@@ -49,4 +49,12 @@ class QueueService {
     }
     return queueNumber;
   }
+
+  Future<Map<String, dynamic>> getEstimates({String? date}) async {
+    final response = await _dio.get(
+      '/dashboard/estimates',
+      queryParameters: date != null ? {'date': date} : null,
+    );
+    return Map<String, dynamic>.from(response.data as Map);
+  }
 }

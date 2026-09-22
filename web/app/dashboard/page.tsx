@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { format } from 'date-fns'
-import { Queue, DashboardStats, QueueStatus } from '@/lib/types'
-import { getQueues, getDashboardStats, updateQueueStatus, deleteQueue } from '@/lib/api'
+import { format, isBefore } from 'date-fns'
+import { Queue, DashboardStats, QueueStatus, ETAResponse, QueueETA } from '@/lib/types'
+import { getQueues, getDashboardStats, updateQueueStatus, deleteQueue, getEstimates } from '@/lib/api'
 import StatsCard from '@/components/ui/StatsCard'
 
 // ─── Status Badge ──────────────────────────────────────────────────────────────
@@ -96,6 +96,8 @@ function ActionBtn({ label, onClick, loading = false, variant }: ActionBtnProps)
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [queues, setQueues] = useState<Queue[]>([])
+  const [estimatesMap, setEstimatesMap] = useState<Map<string, QueueETA>>(new Map())
+  const [avgServiceMin, setAvgServiceMin] = useState<number>(30)
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -108,13 +110,21 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [statsData, queuesData] = await Promise.all([
+      const [statsData, queuesData, etaData] = await Promise.all([
         getDashboardStats(date),
         getQueues(date, page, 10),
+        getEstimates(date).catch(() => null),
       ])
       setStats(statsData)
       setQueues(queuesData.queues)
       setTotalPages(queuesData.total_pages)
+
+      if (etaData) {
+        setAvgServiceMin(etaData.avg_service_minutes || 30)
+        const map = new Map<string, QueueETA>()
+        etaData.estimates?.forEach((item: QueueETA) => map.set(item.id, item))
+        setEstimatesMap(map)
+      }
     } finally {
       setLoading(false)
     }
@@ -155,8 +165,16 @@ export default function DashboardPage() {
     // (just refresh stats silently in bg — no full reload)
     try {
       await updateQueueStatus(id, status)
-      // On success: silently refresh stats only
+      // On success: silently refresh stats & estimates
       getDashboardStats(date).then(setStats).catch(() => {})
+      getEstimates(date).then(res => {
+        if (res) {
+          setAvgServiceMin(res.avg_service_minutes || 30)
+          const map = new Map<string, QueueETA>()
+          res.estimates?.forEach((item: QueueETA) => map.set(item.id, item))
+          setEstimatesMap(map)
+        }
+      }).catch(() => {})
     } catch (err) {
       // On failure: revert local state
       console.error('Status update failed', err)
@@ -211,13 +229,18 @@ export default function DashboardPage() {
             </h1>
             <p className="text-sm text-slate-500 mt-0.5">Showroom Queue Management System</p>
           </div>
-          <input
-            type="date"
-            value={date}
-            onChange={e => { setDate(e.target.value); setPage(1) }}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm
-              focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-          />
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-100 bg-indigo-50/80 px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm">
+              ✨ Smart ETA: Rata-rata {avgServiceMin} mnt / antrian
+            </span>
+            <input
+              type="date"
+              value={date}
+              onChange={e => { setDate(e.target.value); setPage(1) }}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm
+                focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+            />
+          </div>
         </div>
 
         {/* ── Stats Cards ─────────────────────────────────────────────────── */}
@@ -262,7 +285,8 @@ export default function DashboardPage() {
                 <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Plat</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Nama</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Waktu</th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Waktu Masuk</th>
+                <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Est. Selesai</th>
                 <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Aksi</th>
               </tr>
             </thead>
@@ -271,16 +295,16 @@ export default function DashboardPage() {
                 // Skeleton rows
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 6 }).map((__, j) => (
+                    {Array.from({ length: 7 }).map((__, j) => (
                       <td key={j} className="px-5 py-3.5">
-                        <div className="h-4 rounded-md bg-slate-100 animate-pulse" style={{ width: `${60 + j * 10}%` }} />
+                        <div className="h-4 rounded-md bg-slate-100 animate-pulse" style={{ width: `${60 + j * 5}%` }} />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : filteredQueues.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center">
+                  <td colSpan={7} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-400">
                       <span className="text-4xl">📭</span>
                       <p className="text-sm font-medium">Tidak ada data antrian</p>
@@ -289,6 +313,16 @@ export default function DashboardPage() {
                 </tr>
               ) : filteredQueues.map(q => {
                 const isUpdating = updatingIds.has(q.id)
+                const etaInfo = estimatesMap.get(q.id)
+
+                let etaDisplay = '-'
+                let isOverdue = false
+                if (etaInfo && (q.status === 'waiting' || q.status === 'processing')) {
+                  const doneTime = new Date(etaInfo.estimated_done_at)
+                  etaDisplay = `± ${format(doneTime, 'HH:mm')}`
+                  isOverdue = isBefore(doneTime, new Date())
+                }
+
                 return (
                   <tr
                     key={q.id}
@@ -322,9 +356,26 @@ export default function DashboardPage() {
                       )}
                     </td>
 
-                    {/* Time */}
+                    {/* Waktu Masuk */}
                     <td className="px-5 py-3.5 text-slate-500 tabular-nums">
                       {format(new Date(q.created_at), 'HH:mm')}
+                    </td>
+
+                    {/* Est. Selesai (AI Feature) */}
+                    <td className="px-5 py-3.5 tabular-nums">
+                      {q.status === 'done' ? (
+                        <span className="text-emerald-600 font-medium text-xs">✓ Selesai</span>
+                      ) : q.status === 'cancelled' ? (
+                        <span className="text-slate-400 text-xs">-</span>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${
+                          isOverdue
+                            ? 'bg-rose-50 text-rose-600 ring-1 ring-rose-200'
+                            : 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100'
+                        }`}>
+                          ⏳ {etaDisplay}
+                        </span>
+                      )}
                     </td>
 
                     {/* Actions */}

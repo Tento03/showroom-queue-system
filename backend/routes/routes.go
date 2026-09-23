@@ -11,12 +11,18 @@ func Route(r *gin.Engine) {
 	queueController := controllers.NewQueueController()
 	uploadController := controllers.NewUploadController()
 	wsController := controllers.NewWebSocketController()
+	serviceController := controllers.NewServiceController()
 
 	r.Static("/uploads", "./uploads")
 
 	api := r.Group("/")
 	{
 		api.POST("/upload", middleware.RateLimitUpload(), uploadController.UploadImage)
+
+		// Services
+		api.GET("/services", serviceController.GetServices)
+		api.POST("/services", serviceController.CreateService)
+		api.PATCH("/services/:id", serviceController.UpdateEstimatedMinutes)
 
 		// Queue
 		api.GET("/queues", queueController.GetQueues)

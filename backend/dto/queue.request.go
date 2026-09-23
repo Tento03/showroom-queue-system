@@ -1,6 +1,7 @@
 package dto
 
 type CreateQueueRequest struct {
+	ServiceID       string `json:"service_id" binding:"required"`
 	VehiclePlate    string `json:"vehicle_plate" binding:"required"`
 	VehicleImageURL string `json:"vehicle_image_url" binding:"required"`
 	OwnerName       string `json:"owner_name"`

@@ -14,12 +14,14 @@ import (
 )
 
 type QueueService struct {
-	repo *repositories.QueueRepository
+	repo        *repositories.QueueRepository
+	serviceRepo *repositories.ServiceRepository
 }
 
 func NewQueueService() *QueueService {
 	return &QueueService{
-		repo: repositories.NewQueueRepository(),
+		repo:        repositories.NewQueueRepository(),
+		serviceRepo: repositories.NewServiceRepository(),
 	}
 }
 
@@ -45,9 +47,18 @@ func (s *QueueService) GetQueues(date string, page, limit int) ([]models.Queue, 
 }
 
 func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) {
+	// Validasi service_id ada
+	service, err := s.serviceRepo.FindByID(req.ServiceID)
+	if err != nil {
+		return "", err
+	}
+	if service == nil {
+		return "", utils.ErrServiceNotFound
+	}
+
 	var queueNumber string
 
-	err := config.DB.Transaction(func(tx *gorm.DB) error {
+	err = config.DB.Transaction(func(tx *gorm.DB) error {
 		var dummy models.Queue
 		tx.Raw("SELECT id FROM queues WHERE queue_date = ? LIMIT 1 FOR UPDATE",
 			time.Now().Format("2006-01-02")).
@@ -64,6 +75,7 @@ func (s *QueueService) CreateQueue(req *dto.CreateQueueRequest) (string, error) 
 		queue := &models.Queue{
 			QueueNumber:     queueNumber,
 			QueueDate:       today,
+			ServiceID:       req.ServiceID,
 			VehiclePlate:    req.VehiclePlate,
 			VehicleImageURL: req.VehicleImageURL,
 			OwnerName:       req.OwnerName,
@@ -110,11 +122,34 @@ func (s *QueueService) UpdateStatus(id string, status string) error {
 		return utils.ErrQueueNotFound
 	}
 
-	if err := validateStatusTransition(queue.Status, models.QueueStatus(status)); err != nil {
+	nextStatus := models.QueueStatus(status)
+	if err := validateStatusTransition(queue.Status, nextStatus); err != nil {
 		return err
 	}
 
-	if err := s.repo.UpdateStatus(id, models.QueueStatus(status)); err != nil {
+	updates := map[string]interface{}{
+		"status": nextStatus,
+	}
+
+	now := time.Now()
+	if nextStatus == models.StatusProcessing {
+		updates["started_at"] = &now
+	} else if nextStatus == models.StatusDone {
+		updates["completed_at"] = &now
+		var startTime time.Time
+		if queue.StartedAt != nil {
+			startTime = *queue.StartedAt
+		} else {
+			startTime = queue.CreatedAt
+		}
+		minutes := int(now.Sub(startTime).Minutes())
+		if minutes < 0 {
+			minutes = 0
+		}
+		updates["actual_minutes"] = minutes
+	}
+
+	if err := s.repo.UpdateStatus(id, updates); err != nil {
 		return err
 	}
 

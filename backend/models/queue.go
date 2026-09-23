@@ -19,8 +19,12 @@ type Queue struct {
 	VehicleImageURL string      `gorm:"type:text;not null"                         json:"vehicle_image_url"`
 	OwnerName       string      `gorm:"type:varchar(100)"                          json:"owner_name"`
 	OwnerPhone      string      `gorm:"type:varchar(20)"                           json:"owner_phone"`
-	Status          QueueStatus `gorm:"type:varchar(20);default:waiting"         json:"status"`
-	DoneAt          *time.Time  `gorm:"column:done_at"                             json:"done_at,omitempty"`
+	ServiceID       string      `gorm:"type:varchar(36);index"                     json:"service_id"`
+	Service         *Service    `gorm:"foreignKey:ServiceID"                       json:"service,omitempty"`
+	Status          QueueStatus `gorm:"type:varchar(20);default:waiting"           json:"status"`
+	StartedAt       *time.Time  `gorm:"column:started_at"                          json:"started_at,omitempty"`
+	CompletedAt     *time.Time  `gorm:"column:completed_at"                        json:"completed_at,omitempty"`
+	ActualMinutes   *int        `gorm:"column:actual_minutes"                      json:"actual_minutes,omitempty"`
 	CreatedAt       time.Time   `gorm:"autoCreateTime"                             json:"created_at"`
 }
 

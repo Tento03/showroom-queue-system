@@ -73,6 +73,10 @@ func (ctrl *QueueController) CreateQueue(c *gin.Context) {
 
 	queueNumber, err := ctrl.services.CreateQueue(&req)
 	if err != nil {
+		if errors.Is(err, utils.ErrServiceNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create queue"})
 		return
 	}

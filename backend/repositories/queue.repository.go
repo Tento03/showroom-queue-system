@@ -41,7 +41,7 @@ func (r *QueueRepository) GetQueuesByDate(date string, page, limit int) ([]model
 		Count(&total)
 
 	// Ambil data dengan pagination
-	result := config.DB.Where("queue_date = ?", date).
+	result := config.DB.Preload("Service").Where("queue_date = ?", date).
 		Order("created_at ASC").
 		Limit(limit).
 		Offset(offset).
@@ -65,7 +65,7 @@ func (r *QueueRepository) CreateQueueTx(tx *gorm.DB, queue *models.Queue) error 
 
 func (r *QueueRepository) GetQueueByID(id string) (*models.Queue, error) {
 	var queue models.Queue
-	result := config.DB.Where("id = ?", id).First(&queue)
+	result := config.DB.Preload("Service").Where("id = ?", id).First(&queue)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -75,21 +75,14 @@ func (r *QueueRepository) GetQueueByID(id string) (*models.Queue, error) {
 	return &queue, nil
 }
 
-func (r *QueueRepository) UpdateStatus(id string, status models.QueueStatus) error {
-	updates := map[string]interface{}{
-		"status": status,
-	}
-	if status == models.StatusDone {
-		now := time.Now()
-		updates["done_at"] = &now
-	}
+func (r *QueueRepository) UpdateStatus(id string, updates map[string]interface{}) error {
 	result := config.DB.Model(&models.Queue{}).Where("id = ?", id).Updates(updates)
 	return result.Error
 }
 
 func (r *QueueRepository) GetActiveQueuesByDate(date string) ([]models.Queue, error) {
 	var queues []models.Queue
-	err := config.DB.Where("queue_date = ? AND status IN ?", date, []models.QueueStatus{models.StatusWaiting, models.StatusProcessing}).
+	err := config.DB.Preload("Service").Where("queue_date = ? AND status IN ?", date, []models.QueueStatus{models.StatusWaiting, models.StatusProcessing}).
 		Order("created_at ASC").
 		Find(&queues).Error
 	return queues, err
@@ -97,11 +90,9 @@ func (r *QueueRepository) GetActiveQueuesByDate(date string) ([]models.Queue, er
 
 func (r *QueueRepository) GetAvgServiceMinutes(date string) (float64, error) {
 	var avgMinutes *float64
-	// Works for both MySQL (TIMESTAMPDIFF) and SQLite/Postgres or generic SQL via TIMESTAMPDIFF / strftime
-	// In GORM raw query or driver specific:
 	err := config.DB.Model(&models.Queue{}).
-		Select("AVG(TIMESTAMPDIFF(MINUTE, created_at, done_at))").
-		Where("queue_date = ? AND status = ? AND done_at IS NOT NULL", date, models.StatusDone).
+		Select("AVG(actual_minutes)").
+		Where("queue_date = ? AND status = ? AND actual_minutes IS NOT NULL", date, models.StatusDone).
 		Scan(&avgMinutes).Error
 
 	if err != nil || avgMinutes == nil {

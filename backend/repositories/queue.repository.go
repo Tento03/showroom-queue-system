@@ -137,3 +137,35 @@ func (r *QueueRepository) GetStatsByDate(date string) (map[string]int, error) {
 
 	return stats, nil
 }
+
+func (r *QueueRepository) GetHistoricalAvgByService(serviceID string) (*float64, error) {
+	var result struct {
+		AvgMinutes float64
+		Count      int64
+	}
+
+	err := config.DB.Model(&models.Queue{}).
+		Select("AVG(actual_minutes) as avg_minutes, COUNT(*) as count").
+		Where("service_id = ? AND status = ? AND actual_minutes IS NOT NULL", serviceID, models.StatusDone).
+		Scan(&result).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Count >= 5 {
+		return &result.AvgMinutes, nil
+	}
+
+	return nil, nil
+}
+
+func (r *QueueRepository) GetQueuesAhead(date string, createdAt time.Time) ([]models.Queue, error) {
+	var queues []models.Queue
+	err := config.DB.Preload("Service").
+		Where("queue_date = ? AND status IN ? AND created_at < ?", date, []models.QueueStatus{models.StatusWaiting, models.StatusProcessing}, createdAt).
+		Order("created_at ASC").
+		Find(&queues).Error
+	return queues, err
+}
+

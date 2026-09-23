@@ -172,3 +172,20 @@ func (ctrl *QueueController) GetEstimates(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+func (ctrl *QueueController) GetQueueETA(c *gin.Context) {
+	id := c.Param("id")
+
+	res, err := ctrl.services.GetQueueETA(id)
+	if err != nil {
+		if errors.Is(err, utils.ErrQueueNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get queue eta"})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+

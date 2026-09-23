@@ -50,3 +50,11 @@ type ETAResponse struct {
 	Estimates         []QueueETA `json:"estimates"`
 }
 
+type SingleQueueETAResponse struct {
+	QueueNumber          string `json:"queue_number"`
+	Service              string `json:"service"`
+	EstimatedWaitMinutes int    `json:"estimated_wait_minutes"`
+	EstimatedReadyAt     string `json:"estimated_ready_at"`
+	QueuesAhead          int    `json:"queues_ahead"`
+}
+

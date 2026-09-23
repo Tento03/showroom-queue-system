@@ -8,6 +8,7 @@ import (
 	"backend-queue/utils"
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"gorm.io/gorm"
@@ -243,6 +244,122 @@ func (s *QueueService) GetEstimates(date string) (*dto.ETAResponse, error) {
 		Estimates:         estimates,
 	}, nil
 }
+
+func (s *QueueService) GetQueueETA(id string) (*dto.SingleQueueETAResponse, error) {
+	queue, err := s.repo.GetQueueByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if queue == nil {
+		return nil, utils.ErrQueueNotFound
+	}
+
+	serviceName := ""
+	if queue.Service != nil {
+		serviceName = queue.Service.Name
+	}
+
+	now := time.Now()
+
+	// Jika antrean sudah selesai atau dibatalkan
+	if queue.Status == models.StatusDone || queue.Status == models.StatusCancelled {
+		return &dto.SingleQueueETAResponse{
+			QueueNumber:          queue.QueueNumber,
+			Service:              serviceName,
+			EstimatedWaitMinutes: 0,
+			EstimatedReadyAt:     now.Format(time.RFC3339),
+			QueuesAhead:          0,
+		}, nil
+	}
+
+	// 1. Ambil semua antrian dengan status "waiting" atau "processing" yang created_at lebih awal dari queue yang diminta
+	queuesAhead, err := s.repo.GetQueuesAhead(queue.QueueDate, queue.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	queuesAheadCount := len(queuesAhead)
+
+	// Helper untuk mendapatkan durasi servis efektif (cek historis >= 5 data)
+	durationCache := make(map[string]int)
+	getEffectiveDuration := func(q *models.Queue) int {
+		if q.Service == nil {
+			return 30
+		}
+		if dur, ok := durationCache[q.ServiceID]; ok {
+			return dur
+		}
+
+		histAvg, err := s.repo.GetHistoricalAvgByService(q.ServiceID)
+		if err == nil && histAvg != nil && *histAvg > 0 {
+			dur := int(math.Round(*histAvg))
+			durationCache[q.ServiceID] = dur
+			return dur
+		}
+
+		dur := q.Service.EstimatedMinutes
+		if dur <= 0 {
+			dur = 30
+		}
+		durationCache[q.ServiceID] = dur
+		return dur
+	}
+
+	var totalSisaWaktu float64 = 0
+
+	// Jika queue yang diminta sendiri sedang processing
+	if queue.Status == models.StatusProcessing {
+		dur := getEffectiveDuration(queue)
+		elapsed := 0.0
+		if queue.StartedAt != nil {
+			elapsed = now.Sub(*queue.StartedAt).Minutes()
+		}
+		sisa := float64(dur) - elapsed
+		if sisa < 0 {
+			sisa = 0
+		}
+		totalSisaWaktu = sisa
+	} else {
+		// Queue berstatus waiting
+		for _, q := range queuesAhead {
+			dur := getEffectiveDuration(&q)
+			if q.Status == models.StatusProcessing {
+				// 2. Untuk yang "processing": hitung sisa waktu = service.estimated_minutes - (now() - started_at dalam menit)
+				elapsed := 0.0
+				if q.StartedAt != nil {
+					elapsed = now.Sub(*q.StartedAt).Minutes()
+				}
+				sisa := float64(dur) - elapsed
+				if sisa < 0 {
+					sisa = 0
+				}
+				totalSisaWaktu += sisa
+			} else if q.Status == models.StatusWaiting {
+				// 3. Untuk yang "waiting": ambil service.estimated_minutes
+				totalSisaWaktu += float64(dur)
+			}
+		}
+	}
+
+	// 4. Total ETA = jumlah semua sisa waktu di atas
+	// 5. Tambahkan buffer 10% untuk variasi
+	totalWithBuffer := totalSisaWaktu * 1.10
+	estimatedWaitMinutes := int(math.Round(totalWithBuffer))
+	if estimatedWaitMinutes < 0 {
+		estimatedWaitMinutes = 0
+	}
+
+	estimatedReadyAt := now.Add(time.Duration(estimatedWaitMinutes) * time.Minute)
+
+	return &dto.SingleQueueETAResponse{
+		QueueNumber:          queue.QueueNumber,
+		Service:              serviceName,
+		EstimatedWaitMinutes: estimatedWaitMinutes,
+		EstimatedReadyAt:     estimatedReadyAt.Format(time.RFC3339),
+		QueuesAhead:          queuesAheadCount,
+	}, nil
+}
+
 
 func validateStatusTransition(current, next models.QueueStatus) error {
 	allowed := map[models.QueueStatus][]models.QueueStatus{

@@ -28,6 +28,7 @@ func Route(r *gin.Engine) {
 		api.GET("/queues", queueController.GetQueues)
 		api.POST("/queue", queueController.CreateQueue)
 		api.GET("/queue/:id", queueController.GetQueueByID)
+		api.GET("/queue/:id/eta", queueController.GetQueueETA)
 		api.PATCH("/queue/:id/status", queueController.UpdateStatus)
 		api.DELETE("/queue/:id", queueController.DeleteQueue)
 

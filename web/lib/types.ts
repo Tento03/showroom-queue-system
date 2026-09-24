@@ -43,4 +43,11 @@ export interface ETAResponse {
   date: string
   avg_service_minutes: number
   estimates: QueueETA[]
-}
+}
+
+export interface AISummaryResponse {
+  summary: string
+  generated_at: string
+  cached: boolean
+}
+

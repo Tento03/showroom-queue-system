@@ -5,6 +5,7 @@ import { format, isBefore } from 'date-fns'
 import { Queue, DashboardStats, QueueStatus, ETAResponse, QueueETA } from '@/lib/types'
 import { getQueues, getDashboardStats, updateQueueStatus, deleteQueue, getEstimates } from '@/lib/api'
 import StatsCard from '@/components/ui/StatsCard'
+import AISummaryCard from '@/components/ui/AISummaryCard'
 
 // ─── Status Badge ──────────────────────────────────────────────────────────────
 
@@ -253,6 +254,9 @@ export default function DashboardPage() {
             <StatsCard label="Batal"    value={stats.cancelled}  color="bg-gradient-to-br from-red-400 to-red-600"           icon="❌" />
           </div>
         )}
+
+        {/* ── AI Insight ───────────────────────────────────────────────────── */}
+        <AISummaryCard date={date} />
 
         {/* ── Toolbar ──────────────────────────────────────────────────────── */}
         <div className="flex gap-3 items-center">

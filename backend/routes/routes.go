@@ -12,6 +12,7 @@ func Route(r *gin.Engine) {
 	uploadController := controllers.NewUploadController()
 	wsController := controllers.NewWebSocketController()
 	serviceController := controllers.NewServiceController()
+	dashboardController := controllers.NewDashboardController()
 
 	r.Static("/uploads", "./uploads")
 
@@ -35,6 +36,7 @@ func Route(r *gin.Engine) {
 		// Dashboard
 		api.GET("/dashboard/stats", queueController.GetDashboardStats)
 		api.GET("/dashboard/estimates", queueController.GetEstimates)
+		api.GET("/dashboard/summary", dashboardController.GetAISummary)
 
 		api.GET("/ws", wsController.Handle)
 	}

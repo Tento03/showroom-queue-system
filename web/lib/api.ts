@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { QueueStatus } from './types'
+import { QueueStatus, AISummaryResponse } from './types'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
@@ -34,4 +34,10 @@ export const getEstimates = async (date?: string) => {
   const params = date ? `?date=${date}` : ''
   const res = await api.get(`/dashboard/estimates${params}`)
   return res.data
-}
+}
+
+export const getDailySummary = async (date: string): Promise<AISummaryResponse> => {
+  const res = await api.get(`/dashboard/summary?date=${date}`)
+  return res.data
+}
+

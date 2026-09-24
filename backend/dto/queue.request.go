@@ -58,3 +58,26 @@ type SingleQueueETAResponse struct {
 	QueuesAhead          int    `json:"queues_ahead"`
 }
 
+// AI Daily Summary DTOs
+
+type ServiceCount struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
+
+type DailySummaryData struct {
+	Date          string         `json:"date"`
+	Total         int            `json:"total"`
+	ByStatus      map[string]int `json:"by_status"`
+	ByService     []ServiceCount `json:"by_service"`
+	AvgMinutes    float64        `json:"avg_minutes"`
+	PeakHour      int            `json:"peak_hour"`
+	PeakHourCount int            `json:"peak_hour_count"`
+}
+
+type AISummaryResponse struct {
+	Summary     string `json:"summary"`
+	GeneratedAt string `json:"generated_at"`
+	Cached      bool   `json:"cached"`
+}
+

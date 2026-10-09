@@ -18,6 +18,7 @@ A real-time vehicle queue management system built for automotive showrooms. Staf
 - 🛡️ **Rate Limiting** — upload endpoint protected via Redis (5 req/10s per IP)
 - 📄 **Pagination** — efficient data loading with page & limit support
 - 🔍 **Search & Filter** — search by plate number or owner name, filter by date
+- 🤖 AI Summary — ringkasan antrian otomatis (harian/per periode) dihasilkan oleh Gemini
 
 ---
 
@@ -29,10 +30,10 @@ A real-time vehicle queue management system built for automotive showrooms. Staf
         │ HTTP REST                     │ HTTP + WebSocket
         └──────────────┬────────────────┘
                        ▼
-              [Go Gin Backend]
-                   │      │      │
-                MySQL   Redis  WebSocket Hub
-              (data)  (cache)  (realtime)
+                [Go Gin Backend]
+              │     │     │     │
+           MySQL  Redis  WS Hub  Gemini API
+          (data) (cache) (realtime) (summary)
 ```
 
 ---
@@ -49,6 +50,7 @@ A real-time vehicle queue management system built for automotive showrooms. Staf
 | Realtime | WebSocket |
 | Deploy Backend | Railway |
 | Deploy Web | Vercel |
+| AI Summary | Google Gemini API (wrapped in backend service) |
 
 ---
 
@@ -64,6 +66,7 @@ A real-time vehicle queue management system built for automotive showrooms. Staf
 | `GET` | `/dashboard/stats` | Get stats (Redis cached) |
 | `POST` | `/upload` | Upload vehicle image (rate limited) |
 | `GET` | `/ws` | WebSocket connection |
+| GET | /dashboard/summary | Generate AI summary of queue data (Gemini) |
 
 ---
 
@@ -85,6 +88,11 @@ waiting → cancelled
 processing → cancelled
 ```
 Done and cancelled are terminal states — no further transitions allowed.
+
+### AI Summary (Gemini)
+Gemini dipanggil lewat service wrapper di backend, jadi API key tidak pernah
+terekspos ke client. Data statistik dikirim sebagai konteks prompt, dan hasil
+summary di-cache di Redis supaya tidak memanggil Gemini berulang untuk data yang sama.
 
 ---
 
@@ -122,6 +130,8 @@ flutter pub get
 flutter run
 ```
 
+GEMINI_API_KEY=your_key_here
+
 ---
 
 ## 📁 Project Structure
@@ -131,7 +141,7 @@ showroom-queue-system/
 ├── backend/
 │   ├── config/          # DB, Redis, Env
 │   ├── controllers/     # HTTP handlers
-│   ├── services/        # Business logic + WebSocket hub
+│   ├── services/        # Business logic + WebSocket hub + Gemini Wrapper
 │   ├── repositories/    # DB queries
 │   ├── middleware/       # CORS, Rate limit
 │   ├── models/          # GORM models
